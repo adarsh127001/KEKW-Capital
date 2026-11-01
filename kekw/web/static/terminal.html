@@ -1,0 +1,148 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="icon" type="image/svg+xml" href="/static/favicon.svg"><title>KEKW CAPITAL</title><style>:root{color-scheme:dark;--ink:#061017;--cyan:#12f6ff;--crimson:#ff365f;--amber:#FFB53D;--cyan-line:rgba(18,246,255,.44);--ink-overlay:rgba(6,16,23,.88)}
+@font-face{font-family:"IBM Plex Mono";src:url("/static/fonts/ibm-plex-mono/IBMPlexMono-Regular.woff2") format("woff2");font-style:normal;font-weight:400;font-display:swap}
+@font-face{font-family:"IBM Plex Mono";src:url("/static/fonts/ibm-plex-mono/IBMPlexMono-SemiBold.woff2") format("woff2");font-style:normal;font-weight:600 700;font-display:swap}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ink);color:var(--cyan);font:24px "IBM Plex Mono",monospace;min-width:0;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;z-index:30;pointer-events:none;background:radial-gradient(ellipse at center,transparent 67%,rgba(6,16,23,.72) 100%),repeating-linear-gradient(to bottom,transparent 0 3px,rgba(18,246,255,.035) 3px 4px)}
+header{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:16px 30px;border-bottom:1px solid var(--cyan);font-size:24px;letter-spacing:.01em}
+header span:first-child{font-size:40px;font-weight:700;white-space:nowrap}
+#liveProof{font-size:24px;text-align:right;line-height:1.2}
+#modeBanner{position:fixed;top:90px;left:50%;transform:translateX(-50%);z-index:40;background:var(--amber);color:var(--ink);padding:8px 18px;font-size:24px;font-weight:700;letter-spacing:.04em;border:1px solid var(--amber);border-radius:0}
+#modeBanner[hidden]{display:none}
+#tape{display:flex;flex-wrap:wrap;align-items:center;gap:8px 28px;padding:10px 28px;color:var(--cyan);border-bottom:1px solid var(--cyan);font-size:56px;letter-spacing:-.03em;line-height:1.15;overflow:hidden}
+.tape-item{display:inline-block;white-space:nowrap;color:var(--cyan);font-size:56px;letter-spacing:-.03em}
+#tickerTabs{display:flex;flex-wrap:wrap;gap:8px;padding:8px 28px}
+#tickerTabs span{cursor:pointer;padding:5px 10px;border:1px solid var(--cyan);font-size:24px;border-radius:0}
+#tickerTabs .selected{background:rgba(18,246,255,.13)}
+#settleToasts{position:fixed;right:20px;top:120px;z-index:22;max-width:40vw}
+.settle-toast{background:var(--ink);color:var(--cyan);border:1px solid var(--cyan);padding:9px 14px;margin:6px;font-size:28px;border-radius:0}
+main{display:grid;grid-template-columns:2fr 1fr;gap:14px;padding:16px 28px}
+.panel{position:relative;isolation:isolate;border:1px solid var(--cyan);background:var(--ink);padding:14px;margin-bottom:12px;min-height:120px;border-radius:0}
+.panel::before,.panel::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:2}
+.panel::before{background:linear-gradient(var(--cyan),var(--cyan)) left top/22px 1px no-repeat,linear-gradient(var(--cyan),var(--cyan)) left top/1px 22px no-repeat,linear-gradient(var(--cyan),var(--cyan)) right top/22px 1px no-repeat,linear-gradient(var(--cyan),var(--cyan)) right top/1px 22px no-repeat}
+.panel::after{background:linear-gradient(var(--cyan),var(--cyan)) left bottom/22px 1px no-repeat,linear-gradient(var(--cyan),var(--cyan)) left bottom/1px 22px no-repeat,linear-gradient(var(--cyan),var(--cyan)) right bottom/22px 1px no-repeat,linear-gradient(var(--cyan),var(--cyan)) right bottom/1px 22px no-repeat}
+.title{color:var(--cyan);font-size:40px;font-weight:700;letter-spacing:.01em;line-height:1.12;margin-bottom:10px}
+.chart-frame{position:relative;width:100%;height:420px;margin-bottom:8px;box-shadow:0 0 14px rgba(18,246,255,.38);border-radius:0}
+#chart{display:block;width:100%;height:100%;border:1px solid var(--cyan);filter:contrast(1.5);border-radius:0}
+.chart-scanlines{position:absolute;inset:1px;z-index:1;pointer-events:none;background:repeating-linear-gradient(to bottom,transparent 0 3px,rgba(18,246,255,.1) 3px 4px)}
+#snakePanel[hidden],#primePanel[hidden]{display:none}
+#snakeCanvas{display:block;width:360px;height:240px;max-width:100%;background:var(--ink);border:1px solid var(--cyan);border-radius:0;image-rendering:pixelated}
+#snakeStatus{display:block;margin-top:8px;font-size:24px}
+.hype{display:inline-block;position:relative;width:200px;height:52px;margin:8px 0 0 16px;border:1px solid var(--cyan);border-bottom:0;border-radius:0;background:var(--ink)}
+.hype:after{content:"";position:absolute;left:calc(50% - 2px);bottom:0;width:4px;height:42px;background:var(--cyan);transform-origin:bottom center;transform:rotate(var(--needle,0deg));transition:transform .2s}
+.hype-label{font-size:24px;color:var(--cyan)}
+.price,#yesTotal,#noTotal{font-size:56px;letter-spacing:-.03em;line-height:1}
+#primePanel{border-radius:0}
+.prime-wrap{display:flex;gap:18px;align-items:center}
+.ring{width:80px;height:80px;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke:rgba(18,246,255,.36);stroke-width:6}
+.ring .progress{stroke:var(--cyan);stroke-dasharray:188;stroke-dashoffset:0;transition:stroke-dashoffset .2s}
+.betbar{height:22px;background:rgba(18,246,255,.12);margin:8px 0;position:relative;border:1px solid var(--cyan);border-radius:0}
+.betbar span{display:block;height:100%;background:var(--cyan);width:0}
+.betbar.no span{background:var(--crimson)}
+#wire{font-size:44px;line-height:1.2;min-height:110px;overflow-wrap:anywhere}
+.cyan{color:var(--cyan)}
+.red{color:var(--crimson)}
+#oddity{font-size:24px;text-align:center;color:var(--cyan);padding:14px}
+#oddity-svg{width:120px;height:120px;fill:var(--ink);stroke:var(--cyan);stroke-width:4;filter:drop-shadow(0 0 8px rgba(18,246,255,.82));animation:pulse-glow 3.4s ease-in-out infinite}
+#oddity-svg .eyes-x,#oddity-svg .cracks,#oddity-svg .smoke{display:none}
+#oddity-svg[data-state="SCREAMING"] .eyes-x,#oddity-svg[data-state="REKT"] .eyes-x,#oddity-svg[data-state="REKT"] .cracks,#oddity-svg[data-state="REKT"] .smoke{display:block}
+#oddity.glitch #oddity-svg{animation:glitch-jitter 200ms steps(2,end)}
+#oddity-svg.smug{filter:drop-shadow(0 0 12px var(--cyan));animation:none}
+.glitch,.shake-200{animation:glitch-jitter 200ms steps(2,end)}
+#captions{position:fixed;bottom:0;left:0;z-index:20;background:var(--ink-overlay);color:var(--cyan);width:100%;padding:12px 25px;font-size:24px;line-height:1.25;border-top:1px solid var(--cyan)}
+table{width:100%;font-size:28px;border-collapse:collapse}
+#blotter{color:var(--crimson)}#blotter th{text-align:left;color:var(--cyan);font-size:28px;font-weight:700;padding:8px 6px;border-bottom:1px solid var(--cyan-line)}
+td{padding:8px 6px;border-bottom:1px solid var(--cyan-line)}
+#blotter tr:nth-child(2){animation:glitch-jitter 200ms steps(2,end)}
+.dim:after{content:"";position:fixed;inset:0;background:rgba(6,16,23,.62);pointer-events:none;z-index:19}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:24;overflow:hidden}
+.confetti-bit{--pulse-opacity-start:1;--pulse-opacity-mid:1;--pulse-opacity-end:0;--pulse-y-start:0;--pulse-y-mid:52vh;--pulse-y-end:110vh;--pulse-r-start:0deg;--pulse-r-mid:360deg;--pulse-r-end:720deg;position:absolute;top:-20px;width:10px;height:18px;animation:pulse-glow 2s linear forwards}
+audio{display:none}
+@keyframes glitch-jitter{0%,100%{transform:translate(0,0)}20%{transform:translate(-3px,1px)}40%{transform:translate(3px,-2px)}60%{transform:translate(-2px,-1px)}80%{transform:translate(2px,2px)}}
+@keyframes marquee-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes pulse-glow{0%{opacity:var(--pulse-opacity-start,1);filter:drop-shadow(0 0 3px var(--pulse-color,var(--cyan)));transform:translate(var(--pulse-x-start,0),var(--pulse-y-start,0)) rotate(var(--pulse-r-start,0))}50%{opacity:var(--pulse-opacity-mid,1);filter:drop-shadow(0 0 11px var(--pulse-color,var(--cyan)));transform:translate(var(--pulse-x-mid,0),var(--pulse-y-mid,0)) rotate(var(--pulse-r-mid,0))}100%{opacity:var(--pulse-opacity-end,1);filter:drop-shadow(0 0 3px var(--pulse-color,var(--cyan)));transform:translate(var(--pulse-x-end,0),var(--pulse-y-end,0)) rotate(var(--pulse-r-end,0))}}
+@media(max-width:1200px){header{flex-wrap:wrap;justify-content:flex-start}header span:first-child{white-space:normal}#liveProof{text-align:left;overflow-wrap:anywhere}main{grid-template-columns:1fr}#settleToasts{left:16px;right:16px;max-width:none}}@media(prefers-reduced-motion:reduce){#oddity-svg,.confetti-bit,#blotter tr:nth-child(2),.glitch,.shake-200{animation:none!important}#oddity-svg{filter:drop-shadow(0 0 4px rgba(18,246,255,.7))}.confetti-bit{opacity:0}}#hypeValue{color:var(--crimson)}.chart-frame.chart-empty::before{content:"";position:absolute;left:3%;right:3%;bottom:12%;border-top:2px solid var(--crimson);opacity:.7;animation:flash 120ms ease-out 1}.empty-orders td{text-align:center;color:var(--crimson);font-size:28px;padding:24px}#blotter:has(tr:nth-child(n+3)) .empty-orders{display:none}#wire{margin-top:0}.panel{margin-bottom:16px}@keyframes flash{0%{opacity:.25}100%{opacity:.8}}
+#tape{display:block;white-space:nowrap;height:72px;padding:4px 28px;overflow:hidden;line-height:1.1}
+.tape-track{display:flex;width:max-content;animation:marquee-scroll 34s linear infinite;will-change:transform}
+.tape-group{display:flex;align-items:center;gap:28px;padding-right:28px;white-space:nowrap}
+main>section{min-width:0;display:flex;flex-direction:column}
+#primePanel{order:0}
+#snakePanel{order:1}
+@media(min-width:1201px) and (max-height:1100px){
+ header{padding:6px 18px}
+ #tape{height:66px;padding:2px 18px}
+ #tickerTabs{padding:4px 18px;gap:6px}
+ #tickerTabs span{padding:4px 8px}
+ main{padding:8px 18px;gap:10px}
+ .panel{padding:8px;margin-bottom:8px;min-height:0}
+ .title{margin-bottom:6px}
+ .chart-frame{height:clamp(170px,22vh,240px);margin-bottom:4px}
+ .hype{height:46px;margin:4px 0 0 8px}
+ .hype:after{height:38px}
+ #snakeCanvas{width:210px;height:140px}
+ #snakeStatus{margin-top:4px}
+ .prime-wrap{gap:10px}
+ .ring{width:64px;height:64px}
+ .betbar{height:18px;margin:5px 0}
+ #blotter th,td{padding:5px 4px}
+ #captions{padding:6px 18px;line-height:1.1}
+}
+@media(prefers-reduced-motion:reduce){.tape-track{animation:none}}
+</style></head><body><div id="confetti"></div><audio id="tape_tick" preload="auto" src="/audio/tape_tick.wav"></audio><audio id="klaxon" preload="auto" src="/audio/klaxon.wav"></audio><audio id="confetti_pop" preload="auto" src="/audio/confetti_pop.wav"></audio><audio id="siren" preload="auto" src="/audio/siren.wav"></audio><audio id="market_close" preload="auto" src="/audio/market_close.wav"></audio><audio id="voice_open" preload="none" src="/audio/open.wav"></audio><audio id="voice_called_it" preload="none" src="/audio/called_it.wav"></audio><audio id="voice_hubris" preload="none" src="/audio/hubris.wav"></audio><audio id="voice_market_closed" preload="none" src="/audio/market_closed.wav"></audio><audio id="voice_sulk" preload="none" src="/audio/sulk.wav"></audio><audio id="voice_panic" preload="none" src="/audio/panic.wav"></audio><audio id="voice_idle_1" preload="none" src="/audio/idle_1.wav"></audio><audio id="voice_idle_2" preload="none" src="/audio/idle_2.wav"></audio><audio id="voice_idle_3" preload="none" src="/audio/idle_3.wav"></audio><audio id="voice_idle_4" preload="none" src="/audio/idle_4.wav"></audio><audio id="voice_idle_5" preload="none" src="/audio/idle_5.wav"></audio><header><span>KEKW CAPITAL</span><span id="modeBanner" role="status" aria-live="polite" hidden></span><span id="liveProof">INGRESS: WAITING · UTC --:--:-- · MESSAGES 0 · LAST CHAT --</span></header><div id="tape"><div class="tape-track"><div class="tape-group"><span class="tape-item" data-ticker="KEKW">$KEKW 50T ▲</span><span class="tape-item" data-ticker="GG">$GG 50T ▲</span><span class="tape-item" data-ticker="FAIL">$FAIL 50T ▬</span></div><div class="tape-group" aria-hidden="true"><span class="tape-item">$KEKW 50T ▲</span><span class="tape-item">$GG 50T ▲</span><span class="tape-item">$FAIL 50T ▬</span></div></div></div><div id="tickerTabs"></div><div id="settleToasts"></div><main><section><div class="panel"><div class="title">5 SECOND PRICE ACTION · <span id="chartTicker">$KEKW</span></div><div class="chart-frame"><canvas id="chart" role="img" aria-label="Five-second OHLC chart for the selected ticker. Cyan candles close up; crimson candles close down." width="1200" height="420"></canvas><span class="chart-scanlines" aria-hidden="true"></span></div><div class="hype" id="hypeGauge" aria-label="Hype velocity"><span class="hype-label">HYPE</span></div><span id="hypeValue">0.00 / 5s</span></div><div class="panel"><div class="title">ODDITY WIRE · LIVE</div><div id="wire">MARKET OPEN: Oddity calls the line again.</div></div><div class="panel"><div class="title">PROSPECTUS</div><div id="prospectus">$KEKW — The market's premier laughter index.</div></div></section><section><div id="primePanel" class="panel" hidden><div class="title">PRIME TIME</div><div class="prime-wrap"><svg class="ring" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30"/><circle class="progress" id="primeRing" cx="32" cy="32" r="30"/></svg><div><div id="primeTitle">Waiting for stake…</div><div id="primeClock">60s</div></div></div><div>YES <b id="yesTicker"></b> <span id="yesTotal">0T</span><div class="betbar"><span id="yesBar"></span></div></div><div>NO <b id="noTicker"></b> <span id="noTotal">0T</span><div class="betbar no"><span id="noBar"></span></div></div></div><div id="snakePanel" class="panel" hidden><div class="title">ODDITY LIVE ATTEMPT · KEY-S RESTARTS</div><canvas id="snakeCanvas" role="img" aria-label="Deterministic snake minigame. The scripted route can end on self-collision; press S to restart." width="360" height="240"></canvas><span id="snakeStatus">SNAKE RUNNING</span></div><div class="panel"><div class="title">ORDER BLOTTER</div><table id="blotter" aria-label="Recent order fills"><tr><th scope="col">TRADER</th><th scope="col">ORDER</th><th scope="col">STATUS</th></tr><tr class="empty-orders"><td colspan="3">NO ORDERS YET</td></tr></table></div><div class="panel"><div class="title">ODDITY · <span id="state">SASSY</span></div><div id="oddity"><svg id="oddity-svg" data-state="SASSY" viewBox="0 0 120 120" role="img" aria-label="Oddity SASSY"><path d="M20 98V55a40 40 0 0 1 80 0v43l-10-7-10 7-10-7-10 7-10-7-10 7-10-7z"/><path d="M43 54h8m20 0h8" stroke-linecap="round"/><g class="eyes-x" stroke-width="5"><path d="m40 48 12 12m0-12L40 60m28-12 12 12m0-12L68 60"/></g><g class="cracks" fill="none"><path d="m82 24-12 20 10 6-13 20"/><path d="m27 73 15-7-4 18"/></g><g class="smoke" fill="none"><path d="M24 34c-12-8 5-14-3-23m77 23c12-8-5-14 3-23"/></g></svg></div><div>I CALLED THE LINE. (ironic)</div></div></section></main><div id="captions" role="status" aria-live="polite" aria-atomic="true">Captions: the market is honest, the host is not.</div><script>
+const candles=[];let snakeTimer=null,snakeTick=0,snakePath=[],snakeBody=[];function startSnake(){clearInterval(snakeTimer);snakePanel.hidden=false;snakeTick=0;snakeBody=[];snakePath=[];for(let y=0;y<12;y++){if(y%2===0){for(let x=0;x<18;x++)snakePath.push([x,y])}else{for(let x=17;x>=0;x--)snakePath.push([x,y])}}snakeStatus.textContent="ODDITY vs SNAKE · deterministic route";const sc=snakeCanvas.getContext("2d");snakeTimer=setInterval(()=>{const next=snakeTick<snakePath.length?snakePath[snakeTick++]:snakePath[0];if(snakeBody.some(p=>p[0]===next[0]&&p[1]===next[1])){clearInterval(snakeTimer);snakeStatus.textContent="SELF-COLLISION · ODDITY LOSES";fetch("/control/snake-death",{method:"POST"}).catch(()=>{});return}snakeBody.push(next);sc.clearRect(0,0,360,240);snakeBody.forEach((p,i)=>{sc.fillStyle=i===snakeBody.length-1?"#12f6ff":"rgba(18,246,255,.45)";sc.fillRect(p[0]*20+1,p[1]*20+1,18,18)})},250)}window.addEventListener("keydown",e=>{if(e.key.toLowerCase()==="s")startSnake()});const chartCanvas=document.querySelector('#chart'),chartFrame=document.querySelector('.chart-frame');const ctx=chartCanvas.getContext('2d');let chartWidth=1200,chartHeight=420;function resizeChart(){const rect=chartCanvas.getBoundingClientRect();const dpr=Math.max(1,window.devicePixelRatio||1);chartWidth=Math.max(1,rect.width);chartHeight=Math.max(1,rect.height);const width=Math.round(chartWidth*dpr),height=Math.round(chartHeight*dpr);if(chartCanvas.width!==width||chartCanvas.height!==height){chartCanvas.width=width;chartCanvas.height=height}ctx.setTransform(dpr,0,0,dpr,0,0)}window.addEventListener('resize',resizeChart);resizeChart();setInterval(()=>{if(primeClosesAt){const left=Math.max(0,primeClosesAt-Date.now()/1000);primeClock.textContent=left<=0?'CLOSED':`${Math.ceil(left)}s`;primeRing.style.strokeDashoffset=188*(1-left/60);if(left<=0)primeClosesAt=null}},200);function updateBars(yes,no){const total=yes+no||1;yesTotal.textContent=`${yes.toFixed(0)}T`;noTotal.textContent=`${no.toFixed(0)}T`;yesBar.style.width=`${yes/total*100}%`;noBar.style.width=`${no/total*100}%`}function settlementToast(d){settleToasts.replaceChildren();const winners=(d.winners||Object.entries(d.payouts||{}).map(([user_id,payout])=>({user_id,display_name:user_id,payout}))).slice().sort((a,b)=>Number(b.payout)-Number(a.payout)).slice(0,8);winners.forEach(w=>{const row=document.createElement("div");row.className="settle-toast";const payout=Number(w.payout||0);row.textContent=`@${w.display_name||w.user_id} +${payout.toFixed(Number.isInteger(payout)?0:1)}T`;settleToasts.appendChild(row)});setTimeout(()=>settleToasts.replaceChildren(),9000)}function upsertCandle(d){const ticker=String(d.ticker||'').toUpperCase(),bucket=Number(d.bucket),open=Number(d.open),close=Number(d.close);let high=Number(d.high),low=Number(d.low);if(!ticker||!Number.isFinite(bucket)||![open,close,high,low].every(Number.isFinite))return;high=Math.max(high,low,open,close);low=Math.min(high,low,open,close);const candle={ticker,bucket,open,high,low,close,volume:Number(d.volume)||0};const index=candles.findIndex(c=>c.ticker===ticker&&c.bucket===bucket);if(index>=0)candles[index]=candle;else candles.push(candle);candles.sort((a,b)=>a.bucket-b.bucket||a.ticker.localeCompare(b.ticker));const same=candles.filter(c=>c.ticker===ticker);if(same.length>160){const remove=new Set(same.slice(0,same.length-160));for(let i=candles.length-1;i>=0;i--)if(remove.has(candles[i]))candles.splice(i,1)}}function updateHype(candle){const selected=candles.filter(c=>c.ticker===selectedTicker);const index=selected.findIndex(c=>c.bucket===candle.bucket);const prev=index>0?selected[index-1]:null;const seconds=prev?Math.max(1,(candle.bucket-prev.bucket)*5):5;const velocity=prev?(candle.close-prev.close)/seconds:(candle.close-candle.open)/5;const normalized=Math.max(-1,Math.min(1,velocity/.05));hypeGauge.style.setProperty("--needle",`${normalized*85}deg`);hypeValue.textContent=`$${selectedTicker} ${velocity.toFixed(2)}T/s · ${(velocity*5).toFixed(2)}T/5s`}function draw(){
+ const w=chartWidth,h=chartHeight,right=w-20,top=28,bottom=h-58,plotHeight=bottom-top;
+ ctx.clearRect(0,0,w,h);
+ ctx.font='24px "IBM Plex Mono",monospace';ctx.textBaseline='middle';ctx.lineWidth=1;
+ const all=candles.filter(c=>c.ticker===selectedTicker).slice(-50);
+ const latestBucket=all.length?all[all.length-1].bucket:0,firstBucket=all.length?all[0].bucket:latestBucket;
+ const vals=all, bucketSpan=Math.max(1,latestBucket-firstBucket), elapsedSeconds=bucketSpan*5;chartFrame.classList.toggle('chart-empty',vals.length===0);
+ let left=140,min=0,max=100;
+ if(vals.length){
+  min=Math.min(...vals.map(c=>c.low));max=Math.max(...vals.map(c=>c.high));
+  const center=(min+max)/2,dataSpan=max-min;
+  const scale=Math.max(dataSpan*1.12,Math.max(1,Math.abs(center))*.45);
+  min=center-scale/2;max=center+scale/2;
+  const labelWidth=ctx.measureText(`${selectedTicker} ${max.toFixed(1)}T`).width;
+  left=Math.min(Math.max(130,labelWidth+20),w*.44);
+ }
+ const plotWidth=Math.max(1,right-left),range=Math.max(.01,max-min),y=value=>bottom-((value-min)/range)*plotHeight;
+ ctx.strokeStyle='rgba(18,246,255,.18)';ctx.fillStyle='#12f6ff';
+ for(let i=0;i<=4;i++){
+  const value=max-range*i/4,py=top+plotHeight*i/4;
+  ctx.beginPath();ctx.moveTo(left,py);ctx.lineTo(right,py);ctx.stroke();
+  if(vals.length)ctx.fillText(`${selectedTicker} ${value.toFixed(1)}T`,8,py);
+ }
+ const xFor=bucket=>vals.length===1?(left+right)/2:left+Math.max(0,Math.min(bucketSpan,bucket-firstBucket))/bucketSpan*plotWidth;
+ for(let i=0;i<=2;i++){
+  const x=left+plotWidth*i/2;ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,bottom);ctx.stroke();
+  const label=i===2?'NOW':`-${Math.round(elapsedSeconds*(1-i/2))}s`;ctx.textAlign=i===0?'left':i===2?'right':'center';ctx.fillText(label,x,bottom+30);
+ }
+ ctx.textAlign='left';
+ if(vals.length){
+  const width=Math.max(5,Math.min(16,plotWidth/50*.7));
+  vals.forEach(c=>{
+   const x=xFor(c.bucket),openY=y(c.open),closeY=y(c.close),highY=y(c.high),lowY=y(c.low);
+   const color=c.close>=c.open?'#12f6ff':'#ff365f';
+   ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=2;
+   ctx.beginPath();ctx.moveTo(x,highY);ctx.lineTo(x,lowY);ctx.stroke();
+   const bodyTop=Math.min(openY,closeY),bodyHeight=Math.max(3,Math.abs(closeY-openY));
+   const bodyWidth=Math.max(4,Math.min(8,width*.55));
+   ctx.fillRect(x-bodyWidth/2,bodyTop,bodyWidth,bodyHeight);
+   ctx.beginPath();ctx.moveTo(x-7,openY);ctx.lineTo(x,openY);ctx.moveTo(x,closeY);ctx.lineTo(x+7,closeY);ctx.stroke();
+  });
+ }
+ requestAnimationFrame(draw)
+}requestAnimationFrame(draw);let wireTimer=null,wireQueue=[];function startWire(text){wire.textContent='';const chars=Array.from(text);let i=0;wireTimer=setInterval(()=>{if(i>=chars.length){clearInterval(wireTimer);wireTimer=null;if(wireQueue.length){const next=wireQueue.pop();wireQueue=[];startWire(next)}return}wire.textContent+=chars[i++]},48)}function typewire(text){if(wireTimer!==null){wireQueue=[text];return}startWire(text)}let proofMode="showcase",proofMessages=0,lastChatAt=null,selectedTicker="KEKW",primeClosesAt=null;const tapeItems=[],tickerPrices={};setInterval(()=>{const now=new Date();const utc=now.toISOString().slice(11,19);const ago=lastChatAt===null?"--":Math.max(0,Math.floor((Date.now()-lastChatAt)/1000))+"s";liveProof.textContent=`INGRESS: ${proofMode.toUpperCase()} · UTC ${utc} · MESSAGES ${proofMessages} · LAST CHAT ${ago} AGO`},1000);function drawTabs(){tickerTabs.innerHTML=Object.keys(tickerPrices).map(t=>`<span class="${t===selectedTicker?"selected":""}" data-ticker="${t}">$${t}</span>`).join("")}const tapeGroups=[...tape.querySelectorAll('.tape-group')];function drawTape(){const markup=tapeItems.slice(0,8).map(x=>`<span class="tape-item" data-ticker="${x.ticker.toUpperCase()}">$${x.ticker.toUpperCase()} ${x.price.toFixed(2)}T</span>`).join("");tapeGroups.forEach((group,index)=>{group.innerHTML=markup;if(index)group.setAttribute('aria-hidden','true')});drawTabs()}function selectTicker(name){selectedTicker=name.toUpperCase();chartTicker.textContent=`$${selectedTicker}`;const selected=candles.filter(c=>c.ticker===selectedTicker);if(selected.length)updateHype(selected[selected.length-1]);drawTabs()}[tape,tickerTabs].forEach(el=>el.addEventListener("click",e=>{const t=e.target.closest("[data-ticker]");if(t)selectTicker(t.dataset.ticker)}));function play(name){const a=document.getElementById(name);if(a){a.volume=.18;a.currentTime=0;const p=a.play();if(p&&p.catch)p.catch(()=>{})}}const voiceFiles=new Set(),voiceFilesReady=fetch('/audio-manifest').then(r=>r.ok?r.json():null).then(data=>{if(data&&Array.isArray(data.files))data.files.forEach(file=>voiceFiles.add(file))}).catch(()=>{});function voice(name){voiceFilesReady.then(()=>{if(voiceFiles.has(`${name}.wav`))play(`voice_${name}`)})}let lastMarketActivity=Date.now(),idleLine=0;setInterval(()=>{if(Date.now()-lastMarketActivity>=60000){lastMarketActivity=Date.now();idleLine=idleLine%5+1;voice(`idle_${idleLine}`)}},10000);function burst(){for(let i=0;i<40;i++){const b=document.createElement("i");b.className="confetti-bit";b.style.left=Math.random()*100+"%";b.style.background=["#12f6ff","#ff365f","#FFB53D","#12f6ff"][i%4];b.style.animationDelay=Math.random()*.25+"s";confetti.appendChild(b);setTimeout(()=>b.remove(),2200)}}function handle(d){lastMarketActivity=Date.now();if(d.type==='Headline')typewire([...(d.headlines||[]),d.analyst].join(' · '));if(d.type==='Candle'){upsertCandle(d);tickerPrices[d.ticker.toUpperCase()]=Number(d.close);if(d.ticker.toUpperCase()===selectedTicker){const current=candles.find(c=>c.ticker===d.ticker.toUpperCase()&&c.bucket===Number(d.bucket));if(current)updateHype(current);}const tapeTicker=d.ticker.toUpperCase(),tapeBucket=Number(d.bucket),oldTape=tapeItems.findIndex(x=>x.ticker===tapeTicker&&x.bucket===tapeBucket);if(oldTape>=0)tapeItems.splice(oldTape,1);tapeItems.unshift({ticker:tapeTicker,bucket:tapeBucket,price:Number(d.close)});tapeItems.length=Math.min(tapeItems.length,8);drawTape()}if(d.type==='MarketEvent'){if(d.kind==='ingress'){proofMode=d.payload.mode;proofMessages=d.payload.messages;lastChatAt=d.payload.last_chat_seconds===null?null:Date.now()-d.payload.last_chat_seconds*1000}if(d.kind==='chat_reply')captions.textContent=d.payload.text;if(d.kind==='mode'){modeBanner.hidden=d.payload.mode!=='PIT';modeBanner.textContent='PIT 2.0 · MOMENTUM / DIPS / PAPERHANDS / WHALE WALLS'}if(d.kind==='contract_order')updateBars(Number(d.payload.yes_tendies||0),Number(d.payload.no_tendies||0));if(d.kind==='contract_settled'){primeClosesAt=null;primeClock.textContent='SETTLED';primeTitle.textContent=`${d.payload.winner} WINS`;settlementToast(d.payload)}if(d.kind==='oddity'){const visualState=d.payload.state==='SULK'?'REKT':d.payload.state;state.textContent=visualState;document.getElementById('oddity-svg').dataset.state=visualState;oddity.classList.toggle('glitch',visualState==='FREEZE');if(visualState==='REKT')document.body.classList.add('shake-200');setTimeout(()=>document.body.classList.remove('shake-200'),200);if(d.payload.state==='SULK')voice('sulk');if(d.payload.state==='PANIC')voice('panic')}if(d.kind==='stage_breaking'||d.kind==='pit_trade'){const row=blotter.insertRow(1);row.innerHTML=`<td>${d.payload.booth||d.payload.display_name||d.payload.user}</td><td>${d.payload.text||`${d.payload.side} $${d.payload.ticker}`}</td><td class="cyan">FILLED</td>`}if(d.kind==='ipo'){prospectus.textContent=`$${d.payload.ticker.toUpperCase()} — ${d.payload.prospectus}`;tapeItems.unshift({ticker:d.payload.ticker.toUpperCase(),price:50});tapeItems.length=Math.min(tapeItems.length,8);drawTape();play('tape_tick');voice('called_it')}if(d.kind==='headline_prompt')captions.textContent=`Analyst note requested for ${d.payload.emote}.`;if(d.kind==='stage_beat'){proofMode='showcase';captions.textContent=`SHOWCASE: ${d.payload.label}`}if(d.kind==='stake_open'){primePanel.hidden=false;primeTitle.textContent=d.payload.title;primeClosesAt=Number(d.payload.closes_at)||Date.now()/1000+60;yesTicker.textContent=`$${d.payload.yes}`;noTicker.textContent=`$${d.payload.no}`;updateBars(0,0);startSnake();voice('hubris');captions.textContent=`PRIME TIME OPEN: ${d.payload.title} · YES ${d.payload.yes} / NO ${d.payload.no}`;prospectus.textContent=`DUEL IPO · ${d.payload.yes} and ${d.payload.no} anchored at 50T`}if(d.kind==='verdict')captions.textContent=`VERDICT: ${d.payload.winner} wins at 1.9× · losing-side 10% burned`;if(d.kind==='close_card'){typewire('MARKET CLOSE — tape sealed. Oddity still calls the line.');document.body.classList.add('dim');state.textContent='REKT';document.getElementById('oddity-svg').dataset.state='REKT';document.getElementById('oddity-svg').classList.add('smug');setTimeout(()=>document.getElementById('oddity-svg').classList.remove('smug'),250);voice('sulk');play('market_close');voice('market_closed')}if(d.kind==='circuit_breaker')play('klaxon');if(d.kind==='contract_yes_moons'){captions.textContent='YES MOONS · confetti for the winning side.';play('confetti_pop');burst()}if(d.kind==='contract_no_crash'){captions.textContent='NO CRASHES · the losing side takes the Oddity tax.';play('siren')}if(d.kind==='force_crash')play('siren');if(d.kind==='open')voice('open')}}function connect(){const ws=new WebSocket(`ws://${location.host}/ws`);ws.onmessage=e=>{const d=JSON.parse(e.data);if(d.type==='history'){(d.events||[]).forEach(handle)}else handle(d)};ws.onclose=()=>setTimeout(connect,800)}connect();
+</script></body></html>
+
+
+
+
+
+
+
+
+
+
+

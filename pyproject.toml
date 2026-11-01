@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kekw-capital"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = ["fastapi>=0.100", "uvicorn", "websockets", "openai", "httpx", "pydantic", "aiosqlite", "Pillow"]
+
+[project.optional-dependencies]
+test = ["pytest<9", "pytest-asyncio"]
+recorder = ["mss", "imageio"]
+
+[project.scripts]
+kekw = "kekw.main:main"
+
+# Runtime data is intentionally loaded from the repository root, not bundled in the wheel.
+[tool.setuptools.packages.find]
+include = ["kekw*"]
+exclude = ["assets*", "docs*", "tests*", "recaps*", "recordings*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
