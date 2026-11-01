@@ -2,6 +2,8 @@
 
 **The AI-hosted emote stock exchange for Twitch chat.** Every spammed emote can become a ticker; deterministic market rules price chat momentum, and Oddity turns the tape into a live financial-news spectacle. Chat gets Tendies, headline cameos, PRIME TIME duels, and shareable MARKET CLOSE cards.
 
+![KEKW CAPITAL terminal](Thumbnail.png)
+
 ![KEKW CAPITAL 60-frame offline SHOWCASE demo](docs/assets/showcase.gif)
 
 ## “The market is honest”
