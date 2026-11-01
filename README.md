@@ -4,8 +4,6 @@
 
 ![KEKW CAPITAL terminal](Thumbnail.png)
 
-![KEKW CAPITAL 60-frame offline SHOWCASE demo](docs/assets/showcase.gif)
-
 ## “The market is honest”
 
 The LLM narrates; it never sets prices. Fast and slow EMAs measure token volume in rolling five-second windows:
