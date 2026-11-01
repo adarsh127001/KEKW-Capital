@@ -64,6 +64,7 @@ class MarketEngine:
     async def trade(self,user_id,side,ticker,qty,display_name=None):
         self.last_trade_error=None
         listing=await self.store.listing(ticker)
+        if listing and listing["price"]<=0:self.last_trade_error="ticker unavailable";return False
         if not listing or listing["halted"]: self.last_trade_error="ticker unavailable"; return False
         now=self.clock()
         if now-self.user_trades.get(user_id,-1e9)<self.settings.trade_limit_seconds:self.last_trade_error="rate-limited"; return False

@@ -11,7 +11,7 @@ from .desk.headlines import HeadlineDesk
 from .market.contracts import PrimeTime
 from .desk.oddity import Oddity
 from pathlib import Path
-from .cards.recap import best_trader_of_day_png, html_recap, market_close_png, oddity_holdings_png, status_card
+from .cards.recap import best_trader_of_day_png, html_recap, market_close_png, oddity_holdings_png, portfolio_png, status_card
 from .events import MarketEvent
 
 def format_balance(display_name,balance): return f"@{display_name} balance: {balance:.1f}T"
@@ -44,7 +44,7 @@ async def serve(args):
         pnl=await store.top_pnl(5)
         names={trade.get("user_id"):trade.get("user") for trade in engine.recent_trades if trade.get("user_id") and trade.get("user")}
         headlines=[line for item in desk.history[-3:] for line in (*item.headlines,item.analyst)]
-        top_pnl=[{"display_name":names.get(r["user_id"],r["user_id"]),"pnl":r["pnl"]} for r in pnl]
+        top_pnl=[{"user_id":r["user_id"],"display_name":names.get(r["user_id"],r["user_id"]),"pnl":r["pnl"]} for r in pnl]
         best=await store.best_trader_today()
         streaks=await store.top_verdict_streaks(5)
         for row in streaks: row["display_name"]=row.get("display_name") or names.get(row["user_id"],row["user_id"])
@@ -61,6 +61,28 @@ async def serve(args):
                 ticker,candles=max(populated,key=lambda entry:len(entry[1]))
         chart={"ticker":ticker,"buckets":[c.bucket for c in candles],"opens":[c.open for c in candles],"highs":[c.high for c in candles],"lows":[c.low for c in candles],"closes":[c.close for c in candles]}
         return {"chart":chart,"headlines":headlines,"verdicts":list(verdicts),"top_pnl":top_pnl,"best_trader":best,"verdict_streaks":streaks}
+    async def render_portfolio_cards(snapshot,base):
+        rows=snapshot.get("top_pnl",[])[:5]; listings={row["ticker"]:row for row in await store.listings()}; output=[]; used=set()
+        for row in rows:
+            user_id=str(row.get("user_id") or row.get("display_name") or "trader"); name=str(row.get("display_name") or user_id)
+            slug=re.sub(r"[^A-Za-z0-9_-]+","_",name).strip("_") or "trader"
+            if slug in used: slug=f"{slug}_{re.sub(r'[^A-Za-z0-9_-]+','_',user_id)}"
+            used.add(slug)
+            holdings=[(ticker,shares,shares*float(listings.get(ticker,{}).get("price",0))) for (owner,ticker),shares in engine.positions.items() if owner==user_id and shares>0]
+            output.append(str(portfolio_png(base/"portfolios"/f"{slug}.png",name,holdings,float(row.get("pnl",0)),["Bold entry. The exit remains a mystery.","Someone call the line back.","Sell the rumor, lose the news.","The tape remembers.","Certified bagholder of the day."][hash(user_id)%5])))
+        return output
+    auto_recap_done=False
+    async def write_recap(base):
+        snapshot=await recap_snapshot()
+        png=market_close_png(base/"market-close.png",snapshot); html=html_recap(base/"index.html",snapshot); oddity=oddity_holdings_png(base/"oddity-holdings.png"); daily=best_trader_of_day_png(base/"best-trader-of-day.png",snapshot)
+        portfolios=await render_portfolio_cards(snapshot,base)
+        result={"png":str(png),"html":str(html),"oddity_png":str(oddity),"best_trader_png":str(daily),"portfolio_pngs":portfolios}
+        await bus.publish(MarketEvent("recap_ready",result)); return result
+    async def maybe_auto_recap():
+        nonlocal auto_recap_done
+        if engine.soft_closed and not auto_recap_done:
+            auto_recap_done=True
+            await write_recap(Path("recaps/auto"))
     async def reconnect_card(status):
         status_card(Path("recaps/reconnecting.png"),status,"Twitch IRC dropped; automatic rejoin is in progress.")
         await bus.publish(__import__("kekw.events",fromlist=["MarketEvent"]).MarketEvent("reconnecting",{}))
@@ -98,6 +120,7 @@ async def serve(args):
                 if showcase_time is not None: showcase_time[0]+=seconds
             events=await showcase.run(timeline,timeline_path.parent,beat_delay=replay_delay,advance_market_clock=advance_market_clock)
             for event in events: print(f"SHOWCASE {event.kind}: {event.payload}",flush=True)
+            await maybe_auto_recap()
             return
         async for msg in source:
             command=msg.text.strip()
@@ -133,12 +156,12 @@ async def serve(args):
                 except ValueError as exc: await reply(msg,f"@{msg.display_name} {exc}")
                 continue
             result=await engine.on_message(msg,count_ingress=False)
+            await maybe_auto_recap()
             if command.lower().startswith(("!buy ","!sell ")):
                 text=format_trade_reply(msg.display_name,command,result,engine.last_trade_error)
                 await reply(msg,text)
             if msg.text.strip().lower()=="!recap":
-                snapshot=await recap_snapshot()
-                market_close_png(Path("recaps/market-close.png"),snapshot); html_recap(Path("recaps/index.html"),snapshot); oddity_holdings_png(Path("recaps/oddity-holdings.png")); best_trader_of_day_png(Path("recaps/best-trader-of-day.png"),snapshot)
+                await write_recap(Path("recaps"))
                 print("RECAP written to recaps/")
             if result is not None: print(f"ORDER {msg.display_name}: {msg.text} => {'FILLED' if result else 'REJECTED'}")
             for ticker in [x["ticker"] for x in await store.listings()]:

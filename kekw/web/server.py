@@ -130,10 +130,21 @@ def create_app(bus,*,prime=None,oddity=None,mode="SHOWCASE",red_key=None,desk=No
         return {"ok":True,"winner":"ODDY_LOSE"}
     @app.post("/control/recap")
     async def recap(payload:dict):
-        from ..cards.recap import best_trader_of_day_png, html_recap, market_close_png, oddity_holdings_png
+        from ..cards.recap import best_trader_of_day_png, html_recap, market_close_png, oddity_holdings_png, portfolio_png
+        import re
         base=Path(payload.get("directory","recaps")); snapshot=await app.state.recap_snapshot() if getattr(app.state,"recap_snapshot",None) else payload.get("snapshot",{})
         png=market_close_png(base/"market-close.png",snapshot); html=html_recap(base/"index.html",snapshot); oddity=oddity_holdings_png(base/"oddity-holdings.png"); daily=best_trader_of_day_png(base/"best-trader-of-day.png",snapshot)
-        await bus.publish(MarketEvent("recap_ready",{"png":str(png),"html":str(html)})); return {"png":str(png),"html":str(html),"oddity_png":str(oddity),"best_trader_png":str(daily)}
+        engine=getattr(app.state,"engine",None); listings={row["ticker"]:row for row in await engine.store.listings()} if engine else {}; portfolios=[]; used=set()
+        for row in snapshot.get("top_pnl",[])[:5]:
+            user_id=str(row.get("user_id") or row.get("display_name") or "trader"); name=str(row.get("display_name") or user_id)
+            slug=re.sub(r"[^A-Za-z0-9_-]+","_",name).strip("_") or "trader"
+            if slug in used: slug=f"{slug}_{re.sub(r'[^A-Za-z0-9_-]+','_',user_id)}"
+            used.add(slug)
+            holdings=[(ticker,shares,shares*float(listings.get(ticker,{}).get("price",0))) for (owner,ticker),shares in (engine.positions.items() if engine else []) if owner==user_id and shares>0]
+            roast=["Bold entry. The exit remains a mystery.","Someone call the line back.","Sell the rumor, lose the news.","The tape remembers.","Certified bagholder of the day."][hash(user_id)%5]
+            portfolios.append(str(portfolio_png(base/"portfolios"/f"{slug}.png",name,holdings,float(row.get("pnl",0)),roast)))
+        result={"png":str(png),"html":str(html),"oddity_png":str(oddity),"best_trader_png":str(daily),"portfolio_pngs":portfolios}
+        await bus.publish(MarketEvent("recap_ready",result)); return result
     @app.post("/control/tape")
     async def tape(payload:dict|None=None):
         from ..cards.recap import best_trader_of_day_png, html_recap, market_close_png, oddity_holdings_png
