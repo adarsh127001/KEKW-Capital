@@ -130,6 +130,9 @@ async def serve(args):
                 if showcase_time is not None: showcase_time[0]+=seconds
             events=await showcase.run(timeline,timeline_path.parent,beat_delay=replay_delay,advance_market_clock=advance_market_clock)
             for event in events: print(f"SHOWCASE {event.kind}: {event.payload}",flush=True)
+            snapshot=await recap_snapshot()
+            await bus.publish(MarketEvent("market_close_card",{"top":snapshot["top_pnl"][:3],"headline":(snapshot["headlines"] or ["The tape closed without a headline."])[0],"verdicts":list(verdicts)}))
+            await asyncio.sleep(9)
             await maybe_auto_recap()
             return
         async for msg in source:
@@ -168,8 +171,10 @@ async def serve(args):
             result=await engine.on_message(msg,count_ingress=False)
             await maybe_auto_recap()
             if command.lower().startswith(("!buy ","!sell ")):
-                text=format_trade_reply(msg.display_name,command,result,engine.last_trade_error)
-                await reply(msg,text)
+                if result is None and engine.last_trade_error is None:
+                    await reply(msg,"usage: !buy $TICKER qty · !sell $TICKER qty|all")
+                else:
+                    await reply(msg,format_trade_reply(msg.display_name,command,result,engine.last_trade_error or "order failed"))
             if msg.text.strip().lower()=="!recap":
                 await write_recap(Path("recaps"))
                 print("RECAP written to recaps/")

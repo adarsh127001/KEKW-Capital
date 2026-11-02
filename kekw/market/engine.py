@@ -16,7 +16,7 @@ class MarketEngine:
         self.store,self.bus,self.settings,self.clock=store,bus,settings,clock
         self.fast=defaultdict(float); self.slow=defaultdict(lambda:1.0); self.seen=defaultdict(int); self.token_times=defaultdict(deque); self.chat=[]; self.recent_trades=[]
         self.candles={}; self.user_trades={}; self.stream_earned=defaultdict(int); self.positions=defaultdict(float); self.price_delta={}; self.history=defaultdict(lambda:deque())
-        self.last_batch=0; self.last_chat=clock(); self.counts=defaultdict(int); self.skew=defaultdict(float); self.breaker_flags=set(); self.halt_since={}; self.soft_closed=False; self.emote_pat=re.compile(r"^[A-Z_][A-Z0-9_]+$")
+        self.last_batch=0; self.last_chat=clock(); self.counts=defaultdict(int); self.skew=defaultdict(float); self.breaker_flags=set(); self.halt_since={}; self.soft_closed=False; self.emote_pat=re.compile(r"^[A-Z_][A-Z0-9_]+$"); self.last_trade_error=None
         self.messages_ingested=0; self.ingress_mode="showcase"
     async def initialize(self):
         self.stream_start=self.clock()
@@ -97,6 +97,9 @@ class MarketEngine:
         self.last_batch=now; published=[]
         for row in await self.store.listings():
             t=row["ticker"]; events=self.token_times[t]
+            if (row["price"] or 0)<=0:
+                self.price_delta[t]=0.0
+                continue
             while events and events[0]<now-5: events.popleft()
             count=len(events); self.seen[t]=count; f=self.settings.ema_fast_alpha; s=self.settings.ema_slow_alpha
             self.fast[t]=f*count+(1-f)*self.fast[t]; self.slow[t]=s*count+(1-s)*self.slow[t]

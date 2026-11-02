@@ -124,8 +124,6 @@ class Showcase:
                 for index in range(rounds):
                     await asyncio.sleep(0.4)
                     await self._pulse(advance_market_clock)
-                    if index%7==0:
-                        await self._emit("view_tour",{"action":"blot_scroll","to":"bottom" if (index//7)%2==0 else "top"})
             else: await self._emit(kind,beat.get("payload",{}))
             if beat_delay and beat["id"] not in ("close_card","lingering"):
                 for _ in range(4):
