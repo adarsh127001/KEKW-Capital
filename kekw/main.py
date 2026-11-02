@@ -155,7 +155,8 @@ async def serve(args):
                 if not ticker: await reply(msg,"Oddity says that ticker looks like a keyboard sneeze."); continue
                 prospectus=await desk.prospectus(ticker); await engine.list_ticker(ticker,prospectus); await reply(msg,f"${ticker} IPO at 50T — {prospectus}"); continue
             if command.lower().startswith("!stake "):
-                if not msg.is_mod: await reply(msg,"Only a channel mod can open PRIME TIME."); continue
+                owner=bool(msg.display_name) and (msg.display_name.lower()==args.channel.lower() or (msg.user_id or "").lower()==args.channel.lower())
+                if not (msg.is_mod or owner): await reply(msg,"Only a channel mod or the streamer can open PRIME TIME."); continue
                 contract=await prime.open(command[7:].strip(),60,is_mod=True)
                 await reply(msg,f"PRIME TIME open: ${contract.yes_ticker} / ${contract.no_ticker} for 60s"); continue
             bet=re.fullmatch(r"!(yes|no)\s+(\d+)",command,re.I)

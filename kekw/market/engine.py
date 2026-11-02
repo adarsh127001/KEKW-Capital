@@ -76,6 +76,7 @@ class MarketEngine:
             if not await self.store.debit(user_id,cost,"buy",ticker):return False
             self.positions[user_id,ticker]+=shares; self.skew[ticker]+=min(.25,shares/1000)
         else:
+            sell_all_flag=(side=="sell" and qty is None)
             available=self.positions[user_id,ticker]
             qty=available if qty is None else qty
             if qty<=0 or available<qty:self.last_trade_error="insufficient shares"; return False
@@ -88,6 +89,8 @@ class MarketEngine:
         await self.store.set_position(user_id,ticker,self.positions[user_id,ticker])
         notional=cost if side=="buy" else proceeds
         trade_event={"user":display_name or user_id,"user_id":user_id,"ticker":ticker,"side":side,"quantity":qty,"notional":notional}
+        if side=="buy": trade_event["shares"]=round(shares,4); trade_event["tendies"]=cost
+        else: trade_event["shares"]=round(qty,4); trade_event["tendies"]=proceeds; trade_event["sell_all"]=sell_all_flag
         self.recent_trades.append(trade_event); self.recent_trades=self.recent_trades[-40:]
         if self.bus: await self.bus.publish(MarketEvent("trade",trade_event))
         return True
