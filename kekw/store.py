@@ -108,6 +108,7 @@ class Store:
     async def ledger_count(self,user_id): return (await (await self.db.execute("SELECT COUNT(*) n FROM ledger WHERE user_id=?",(user_id,))).fetchone())["n"]
     async def set_price(self,ticker,price): await self.db.execute("UPDATE listings SET price=? WHERE ticker=?",(price,ticker)); await self.db.commit()
     async def set_halted(self,ticker): await self.db.execute("UPDATE listings SET halted=1 WHERE ticker=?",(ticker,)); await self.db.commit()
+    async def set_unhalted(self,ticker): await self.db.execute("UPDATE listings SET halted=0 WHERE ticker=?",(ticker,)); await self.db.commit()
     async def founder(self,ticker,user_id):
         row=await self.listing(ticker)
         if row["founder_count"]>=3:return False

@@ -7,8 +7,27 @@ from ..desk.oddity import Oddity
 from ..events import MarketEvent
 from ..market.contracts import PrimeTime
 from ..market.engine import MarketEngine
-from ..sources.chat_source import FileAdapter
+from ..sources.chat_source import FileAdapter, extract_tokens
+from ..models import ChatMessage
 from ..store import Store
+
+WARMUP=[
+ ("bull_betty","KEKW KEKW KEKW KEKW"),("lurk_1","..."),
+ ("chart_goblin","GG GG GG"),("lurk_2","..."),
+ ("bear_boris","FAIL FAIL FAIL"),("lurk_3","..."),
+ ("whale_momo","KEKW KEKW KEKW KEKW"),("lurk_4","..."),
+ ("spread_sam","GG GG"),("quant_queen","!buy $KEKW 15"),
+ ("ape_andy","KEKW KEKW KEKW KEKW KEKW"),("lurk_5","..."),
+ ("paper_hands","FAIL FAIL FAIL"),("lurk_6","..."),
+ ("momo_man","KEKW KEKW KEKW"),("trend_chaser","GG GG GG GG"),
+ ("lurk_7","..."),("dip_buyer","!buy $GG 10"),
+ ("fail_fan","FAIL FAIL FAIL FAIL"),("gg_fan","!buy $GG 12"),
+ ("bull_two","KEKW KEKW KEKW KEKW"),("lurk_9","..."),
+ ("goblin_two","GG GG GG"),("lurk_10","...")]
+
+PULSE_ORDERS=[
+ ("pit_a","!buy $KEKW 8"),("pit_b","!buy $GG 6"),("pit_c","!buy $FAIL 5"),("pit_d","!buy $KEKW 12"),
+ ("pit_e","!buy $GG 9"),("pit_f","!buy $FAIL 7"),("pit_g","!buy $KEKW 10"),("pit_h","!buy $GG 11")]
 
 class Showcase:
     def __init__(self,bus,engine,desk=None,oddity=None,clock=None,prime=None):
@@ -21,9 +40,48 @@ class Showcase:
         if kind in ("ipo","circuit_breaker","stage_breaking","contract_settled"):
             trigger="breaker" if kind=="circuit_breaker" else "ipo" if kind=="ipo" else "trade"
             await self.desk.generate(trigger,event.payload,user=event.payload.get("user","chat"),ticker=event.payload.get("ticker","KEKW"))
+    async def _warmup(self,config,advance_market_clock):
+        count=int(config.get("count",48)); step=float(config.get("clock_step_seconds",8))
+        for i in range(count):
+            if advance_market_clock: advance_market_clock(step)
+            else: self._time[0]+=step
+            user_id,text=WARMUP[i%len(WARMUP)]
+            tokens=() if text.startswith("!") else extract_tokens(text)
+            msg=ChatMessage(user_id=user_id,display_name=user_id.replace("_"," ").title(),text=text,tokens=tokens)
+            filled=await self.engine.on_message(msg)
+            if text.startswith("!") and filled and self.bus:
+                event=MarketEvent("pit_trade",{"user_id":user_id,"display_name":msg.display_name,"text":text,"filled":filled})
+                await self.bus.publish(event); self.emitted.append(event)
+    async def _pulse(self,advance_market_clock):
+        row=WARMUP[(self._pulses if hasattr(self,'_pulses') else 0)%len(WARMUP)]
+        self._pulses=getattr(self,'_pulses',0)+1
+        user_id,text=row
+        tokens=() if text.startswith("!") else extract_tokens(text)
+        msg=ChatMessage(user_id=user_id,display_name=user_id.replace("_"," ").title(),text=text,tokens=tokens)
+        if advance_market_clock: advance_market_clock(5)
+        else: self._time[0]+=5
+        filled=await self.engine.on_message(msg)
+        if text.startswith("!") and filled and self.bus:
+            event=MarketEvent("pit_trade",{"user_id":user_id,"display_name":msg.display_name,"text":text,"filled":filled})
+            await self.bus.publish(event); self.emitted.append(event)
+    async def _pulse(self,advance_market_clock):
+        index=getattr(self,'_pulses',0); self._pulses=index+1
+        if index%2==0:
+            user_id,text=PULSE_ORDERS[index//2%len(PULSE_ORDERS)]
+        else:
+            user_id,text=WARMUP[index*3%len(WARMUP)]
+        tokens=() if text.startswith("!") else extract_tokens(text)
+        msg=ChatMessage(user_id=user_id,display_name=user_id.replace("_"," ").title(),text=text,tokens=tokens)
+        if advance_market_clock: advance_market_clock(7)
+        else: self._time[0]+=7
+        filled=await self.engine.on_message(msg)
+        if text.startswith("!") and filled and self.bus:
+            event=MarketEvent("pit_trade",{"user_id":user_id,"display_name":msg.display_name,"text":text,"filled":filled})
+            await self.bus.publish(event); self.emitted.append(event)
     async def run(self,timeline,base_dir=Path("."),beat_delay=0,advance_market_clock=None):
         source=FileAdapter(str(base_dir/timeline["message_file_relative"])); messages=[]
         async for message in source: messages.append(message)
+        if timeline.get("warmup"): await self._warmup(timeline["warmup"],advance_market_clock)
         for beat in timeline["beats"]:
             await self._emit("stage_beat",{"id":beat["id"],"label":beat["label"]})
             if beat_delay: await asyncio.sleep(beat_delay)
@@ -33,7 +91,10 @@ class Showcase:
                 for message_position,index in enumerate(indices):
                     msg=messages[index]
                     if advance_market_clock: advance_market_clock(5)
-                    before={x["ticker"] for x in await self.engine.store.listings()}; await self.engine.on_message(msg)
+                    before={x["ticker"] for x in await self.engine.store.listings()}; result=await self.engine.on_message(msg)
+                    if result is not None and self.bus:
+                        event=MarketEvent("pit_trade",{"user_id":msg.user_id,"display_name":msg.display_name,"text":msg.text,"filled":result})
+                        await self.bus.publish(event); self.emitted.append(event)
                     after={x["ticker"] for x in await self.engine.store.listings()}
                     for ticker in sorted(after-before): await self._emit("ipo",{"ticker":ticker,"anchor":50,"prospectus":"Community discovered ticker."})
                     if beat_delay and message_position<len(indices)-1: await asyncio.sleep(beat_delay)
@@ -56,7 +117,20 @@ class Showcase:
                 else:
                     self._time[0]=max(self._time[0],contract.closes_at)
                 await self.prime.settle(timeline["_contract_id"],beat["winner"],settle_key=True); await self._emit("verdict",{"winner":beat["winner"]})
+            elif kind=="view_tour":
+                await self._emit("view_tour",beat.get("payload") or {"ticker":beat.get("ticker","KEKW")})
+            elif kind=="lingering":
+                rounds=int(beat.get("seconds",24)/0.4) if beat_delay else 0
+                for index in range(rounds):
+                    await asyncio.sleep(0.4)
+                    await self._pulse(advance_market_clock)
+                    if index%7==0:
+                        await self._emit("view_tour",{"action":"blot_scroll","to":"bottom" if (index//7)%2==0 else "top"})
             else: await self._emit(kind,beat.get("payload",{}))
+            if beat_delay and beat["id"] not in ("close_card","lingering"):
+                for _ in range(4):
+                    await asyncio.sleep(min(0.4,beat_delay))
+                    await self._pulse(advance_market_clock)
         return self.emitted
 
 async def dry_run(path="kekw/mock/demos/stage_timeline.json"):

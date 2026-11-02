@@ -23,7 +23,18 @@ class HeadlineDesk:
                     from openai import AsyncOpenAI
                     self.client=AsyncOpenAI(api_key=self.api_key)
                 response=await self.client.chat.completions.create(model="gpt-4.1-mini",messages=[{"role":"system","content":"Write tabloid finance headlines. Never price assets. Only name users present in recent_trades."},{"role":"user","content":json.dumps({"trigger":trigger,"state":market_state or {},"recent_trades":(market_state or {}).get("recent_trades",[])})}],response_format={"type":"json_schema","json_schema":{"name":"desk_wire","strict":True,"schema":SCHEMA}})
-                obj=json.loads(response.choices[0].message.content); result=Headline(tuple(obj["headlines"]),obj["analyst"],float(obj["bias"]),trigger)
+                obj=json.loads(response.choices[0].message.content)
+                state=market_state or {}; candidates=[data.get("ticker")]
+                movers=state.get("movers",{})
+                if isinstance(movers,dict): candidates.extend(movers)
+                trades=state.get("recent_trades",[])
+                if isinstance(trades,list): candidates.extend(trade.get("ticker") for trade in trades if isinstance(trade,dict))
+                tickers={str(value).strip().lstrip("$").upper() for value in candidates if value and re.fullmatch(r"\$?[A-Za-z0-9_]{2,}",str(value).strip())}
+                headlines=list(obj["headlines"])
+                for ticker in sorted(tickers,key=len,reverse=True):
+                    duplicate=re.compile(rf"(?<![\w$])(\$?{re.escape(ticker)})(?:[\s,]+\$?{re.escape(ticker)})+(?!\w)",re.IGNORECASE)
+                    headlines=[duplicate.sub(r"\1",line) for line in headlines]
+                result=Headline(tuple(headlines),obj["analyst"],float(obj["bias"]),trigger)
                 if any(len(x)>90 for x in (*result.headlines,result.analyst)) or not -1<=result.bias<=1: raise ValueError("invalid schema output")
             except Exception:
                 result=fallback

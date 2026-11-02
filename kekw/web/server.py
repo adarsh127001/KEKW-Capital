@@ -17,7 +17,7 @@ def serial(event):
     return {"type":type(event).__name__,"payload":event}
 
 def create_app(bus,*,prime=None,oddity=None,mode="SHOWCASE",red_key=None,desk=None,engine=None,recap_snapshot=None):
-    app=FastAPI(title="KEKW CAPITAL Terminal"); clients=set(); history=deque(maxlen=200); forward_lock=asyncio.Lock(); first_client=asyncio.Event(); app.state.mode=mode; app.state.first_client=first_client
+    app=FastAPI(title="KEKW CAPITAL Terminal"); clients=set(); history=deque(maxlen=800); forward_lock=asyncio.Lock(); first_client=asyncio.Event(); app.state.mode=mode; app.state.first_client=first_client
     app.mount("/static",StaticFiles(directory=STATIC),name="static")
     app.state.prime=prime or PrimeTime(bus=bus); app.state.oddity=oddity or Oddity(bus=bus); app.state.red_key=red_key
     app.state.desk=desk; app.state.engine=engine; app.state.recap_snapshot=recap_snapshot
@@ -58,10 +58,11 @@ def create_app(bus,*,prime=None,oddity=None,mode="SHOWCASE",red_key=None,desk=No
                     for ws in tuple(clients):
                         try: await ws.send_text(data)
                         except Exception: clients.discard(ws)
+    NO_STORE={"Cache-Control":"no-store, no-cache, must-revalidate"}
     @app.get("/")
-    async def terminal(): return FileResponse(STATIC/"terminal.html")
+    async def terminal(): return FileResponse(STATIC/"terminal.html",headers=NO_STORE)
     @app.get("/dash")
-    async def dash(): return FileResponse(STATIC/"dash.html")
+    async def dash(): return FileResponse(STATIC/"dash.html",headers=NO_STORE)
     @app.get("/favicon.ico",include_in_schema=False)
     async def favicon(): return FileResponse(STATIC/"favicon.svg",media_type="image/svg+xml")
     @app.get("/audio-manifest",include_in_schema=False)

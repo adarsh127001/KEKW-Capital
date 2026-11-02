@@ -1,4 +1,4 @@
-import asyncio, json, re, time
+import asyncio, json, random, re, time
 from typing import AsyncIterator, Protocol, runtime_checkable
 from ..models import ChatMessage
 
@@ -29,12 +29,14 @@ class FileAdapter:
 class IRCAdapter:
     URL = "wss://irc-ws.chat.twitch.tv:443"
     def __init__(self, channel: str, token: str, client_id: str = "", username: str = "", reconnect_max: float = 30, on_status=None):
-        self.channel, self.token, self.client_id, self.username, self.reconnect_max = channel.lstrip("#"), token.removeprefix("oauth:"), client_id, username, reconnect_max
+        self.anonymous = not token
+        self.channel, self.token, self.client_id, self.username, self.reconnect_max = channel.lstrip("#"), (token or "").removeprefix("oauth:"), client_id, (f"justinfan{random.randint(10000, 99999)}" if self.anonymous else username), reconnect_max
         self.on_status=on_status
         self._closed = False
         self._ws=None; self._writes=asyncio.Queue(); self._writer=None
     async def SendMessage(self,text):
         """Queue a Twitch chat reply; delivery failures are intentionally ignored."""
+        if self.anonymous: return
         if not self._ws: return
         await self._writes.put(f"PRIVMSG #{self.channel} :{text}")
     async def _write_loop(self,ws):
@@ -50,7 +52,7 @@ class IRCAdapter:
             try:
                 async with websockets.connect(self.URL) as ws:
                     self._ws=ws; self._writer=asyncio.create_task(self._write_loop(ws))
-                    await ws.send(f"PASS oauth:{self.token}")
+                    await ws.send("PASS justinfan" if self.anonymous else f"PASS oauth:{self.token}")
                     await ws.send(f"NICK {self.username}")
                     await ws.send("CAP REQ :twitch.tv/tags twitch.tv/commands")
                     await ws.send(f"JOIN #{self.channel}")
@@ -85,4 +87,4 @@ class IRCAdapter:
         prefix = rest.split("!",1)[0].lstrip(":")
         display = tags.get("display-name") or prefix
         user_id = tags.get("user-id") or prefix
-        return ChatMessage(user_id, display, trailing, tags.get("first-msg")=="1", extract_tokens(trailing),tags.get("mod")=="1" or tags.get("user-type")=="mod")
+        return ChatMessage(user_id, display, trailing, tags.get("first-msg")=="1", () if trailing.lstrip().startswith("!") else extract_tokens(trailing),tags.get("mod")=="1" or tags.get("user-type")=="mod")

@@ -88,24 +88,34 @@ async def serve(args):
         await bus.publish(__import__("kekw.events",fromlist=["MarketEvent"]).MarketEvent("reconnecting",{}))
     replay_delay=getattr(args,"delay",None)
     if replay_delay is None: replay_delay=.6 if args.source=="file" else 0
+    if args.source=="irc" and not settings.twitch_bot_token:
+        print("ANONYMOUS READ-ONLY: replies appear in the overlay only",flush=True)
     source=FileAdapter(args.path,delay=replay_delay) if args.source=="file" else IRCAdapter(args.channel,settings.twitch_bot_token,settings.twitch_client_id,settings.twitch_bot_username,on_status=reconnect_card)
     if args.web:
         import uvicorn
         from .web.server import create_app
         app=create_app(bus,prime=prime,oddity=oddity,red_key=settings.settle_key,desk=desk,engine=engine,recap_snapshot=recap_snapshot)
         first_client=app.state.first_client
-        server=uvicorn.Server(uvicorn.Config(app,host=args.host,port=args.port,log_level="info"))
+        from contextlib import contextmanager
+        class _NoSignalServer(uvicorn.Server):
+            @contextmanager
+            def capture_signals(self): yield None
+        server=_NoSignalServer(uvicorn.Config(app,host=args.host,port=args.port,log_level="info"))
         server_task=asyncio.create_task(server.serve())
     desk_task=asyncio.create_task(desk.run(lambda:{"movers":engine.price_delta,"breaker_flags":list(engine.breaker_flags),"last_chat_lines":engine.chat[-40:],"recent_trades":engine.recent_trades},stop_event=stop))
     oddity_task=asyncio.create_task(oddity.run(stop))
     async def reply(msg,text):
         await publish_chat_reply(bus,source,msg.display_name,text)
     await bus.publish(MarketEvent("ingress",{"mode":engine.ingress_mode,"messages":0,"utc":datetime.now(timezone.utc).isoformat(),"last_chat_seconds":None}))
+    if getattr(args,"showcase",False):
+        for i in range(12):
+            uid=f"pit_{i:02d}"
+            await bus.publish(MarketEvent("pit_trade",{"user_id":uid,"display_name":f"PIT-{i:02d}","text":f"!buy $KEKW {8+i%9}","filled":True}))
     if args.web and args.source=="file":
         await asyncio.sleep(3)
         try:
             import webbrowser
-            webbrowser.open(f"http://127.0.0.1:{args.port}/")
+            webbrowser.open(f"http://127.0.0.1:{args.port}/" + ("?stage=1" if getattr(args,"showcase",False) else ""))
         except Exception: pass
         if first_client:
             try: await asyncio.wait_for(first_client.wait(),timeout=10)
@@ -166,7 +176,7 @@ async def serve(args):
             if result is not None: print(f"ORDER {msg.display_name}: {msg.text} => {'FILLED' if result else 'REJECTED'}")
             for ticker in [x["ticker"] for x in await store.listings()]:
                 for candle in engine.candles_for(ticker)[-1:]: print(f"CANDLE {candle.ticker} O={candle.open:.3f} H={candle.high:.3f} L={candle.low:.3f} C={candle.close:.3f}")
-    except asyncio.CancelledError: pass
+    except (asyncio.CancelledError, KeyboardInterrupt): pass
     finally:
         if isinstance(source,IRCAdapter):source.close()
         stop.set()
@@ -188,9 +198,14 @@ def main():
     args=p.parse_args()
     if args.showcase and not args.web: p.error("--showcase requires --web")
     if args.showcase and args.source!="file": p.error("--showcase requires --source file")
-    if args.path is None: args.path="kekw/mock/demos/stage_timeline.json" if args.showcase else "kekw/mock/demos/stage_timeline.jsonl"
+    if args.path is None:
+        from pathlib import Path as _Path
+        _root=_Path(__file__).resolve().parent.parent
+        args.path=str(_root/ (
+            "kekw/mock/demos/stage_timeline.json" if args.showcase else "kekw/mock/demos/stage_messages.jsonl"))
     if args.delay is None: args.delay=3.0 if args.showcase else .6 if args.source=="file" else 0
     if sys.platform=="win32":
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    asyncio.run(serve(args))
+    try: asyncio.run(serve(args))
+    except KeyboardInterrupt: pass
 if __name__=="__main__":main()

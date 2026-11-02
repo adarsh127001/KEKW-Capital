@@ -1,12 +1,18 @@
 {
+  "warmup": {"count": 72, "clock_step_seconds": 4},
   "message_file_relative": "stage_messages.jsonl",
   "beats": [
     {"id":"open","label":"Oddity opens the floor","kind":"open"},
     {"id":"ipo_flood","label":"IPO flood","kind":"ipo_flood","messages":[1,2,3]},
     {"id":"named_kill","label":"Named kill","kind":"named_kill","message":0},
+    {"id":"tour_gg","label":"Cross-check GG","kind":"view_tour","ticker":"GG"},
+    {"id":"tour_fail","label":"Cross-check FAIL","kind":"view_tour","ticker":"FAIL"},
+    {"id":"tour_pog","label":"Cross-check POGCHAMP","kind":"view_tour","ticker":"POGCHAMP"},
+    {"id":"tour_kekw","label":"Back to KEKW","kind":"view_tour","ticker":"KEKW"},
     {"id":"probe","label":"Headline probe","kind":"headline_prompt","emote":"PogChamp"},
     {"id":"stake_open","label":"PRIME TIME opens","kind":"stake_open","title":"Will KEKW moon?"},
     {"id":"verdict","label":"Settle key verdict","kind":"verdict","winner":"WILLKEKWMOON_YES"},
+    {"id":"lingering","label":"Chat drives the tape","kind":"lingering","seconds":12},
     {"id":"close_card","label":"Market close card","kind":"close_card"}
   ]
 }

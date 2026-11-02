@@ -16,7 +16,7 @@ class MarketEngine:
         self.store,self.bus,self.settings,self.clock=store,bus,settings,clock
         self.fast=defaultdict(float); self.slow=defaultdict(lambda:1.0); self.seen=defaultdict(int); self.token_times=defaultdict(deque); self.chat=[]; self.recent_trades=[]
         self.candles={}; self.user_trades={}; self.stream_earned=defaultdict(int); self.positions=defaultdict(float); self.price_delta={}; self.history=defaultdict(lambda:deque())
-        self.last_batch=0; self.last_chat=clock(); self.counts=defaultdict(int); self.skew=defaultdict(float); self.breaker_flags=set(); self.soft_closed=False; self.emote_pat=re.compile(r"^[A-Z0-9_]{2,}$")
+        self.last_batch=0; self.last_chat=clock(); self.counts=defaultdict(int); self.skew=defaultdict(float); self.breaker_flags=set(); self.halt_since={}; self.soft_closed=False; self.emote_pat=re.compile(r"^[A-Z_][A-Z0-9_]+$")
         self.messages_ingested=0; self.ingress_mode="showcase"
     async def initialize(self):
         self.stream_start=self.clock()
@@ -111,8 +111,13 @@ class MarketEngine:
             self.price_delta[t]=price/row["price"]-1
             hist=self.history[t]; hist.append((now,price))
             while hist and hist[0][0]<now-60:hist.popleft()
+            if row["halted"] and t in self.halt_since and now-self.halt_since[t]>60:
+                await self.store.set_unhalted(t)
+                self.halt_since.pop(t,None); self.breaker_flags.discard(t); self.history[t].clear()
+                if self.bus: await self.bus.publish(MarketEvent("circuit_breakers_reset",{"ticker":t,"state":"OPEN"}))
             if not row["halted"] and len(hist)>1 and price<=hist[0][1]*.8:
                 await self.store.set_halted(t)
+                self.halt_since[t]=now
                 self.breaker_flags.add(t)
                 if self.bus: await self.bus.publish(MarketEvent("circuit_breaker",{"ticker":t,"price":price,"state":"HALTED"}))
             if now-self.last_chat>120 and not self.soft_closed:
